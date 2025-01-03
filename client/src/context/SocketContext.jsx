@@ -9,11 +9,29 @@ export const SocketContextProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    setSocket(io("https://royalestate-1.onrender.com"));
-  }, []);
+    if (currentUser) {
+      const newSocket = io("https://royalestate-1.onrender.com", {
+        query: { userId: currentUser.id },
+      });
+      setSocket(newSocket);
+
+      return () => newSocket.disconnect(); // Cleanup
+    }
+  }, [currentUser]);
 
   useEffect(() => {
-  currentUser && socket?.emit("newUser", currentUser.id);
+    if (socket) {
+      socket.on("connect", () => {
+        currentUser && socket.emit("newUser", currentUser.id);
+      });
+    }
+  }, [socket, currentUser]);
+
+  useEffect(() => {
+    if (!currentUser && socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
   }, [currentUser, socket]);
 
   return (
